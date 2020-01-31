@@ -6,7 +6,7 @@
 buildarch=8
 
 pkgname=uboot-orangepi-rk3399
-pkgver=2019.10
+pkgver=2020.01
 _srcname=u-boot-${pkgver}
 pkgrel=1
 pkgdesc="U-Boot for Orange Pi RK3399/4"
@@ -21,7 +21,7 @@ source=("ftp://ftp.denx.de/pub/u-boot/${_srcname}.tar.bz2"
         "git+https://github.com/rockchip-linux/rkbin.git#commit=$_commit_rkbin"
         'boot.txt'
         'mkscr')
-md5sums=('216b68925ab4cf3af6a2e3aeb2c47a58'
+md5sums=('b6b2e0787b6874e6b57da0a065a84f5a'
          'SKIP'
          'e2869196adb467048d6e8c86fbf15fee'
          '021623a04afd29ac3f368977140cfbfd')
