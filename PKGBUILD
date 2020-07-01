@@ -1,39 +1,59 @@
-# U-Boot: Orange Pi RK3399/4
-# Based on Arch Linux ARM package alarm/uboot-rock64
-#
+# U-Boot: Orange Pi 4
+# Maintainer: Kevin Mihelich <kevin@archlinuxarm.org>
 # Maintainer: Joseph Kogut <joseph.kogut@gmail.com>
 
 buildarch=8
 
-pkgname=uboot-orangepi-rk3399
-pkgver=2020.01
-_srcname=u-boot-${pkgver}
+pkgname=uboot-orangepi4
+pkgver=2020.04
 pkgrel=1
-pkgdesc="U-Boot for Orange Pi RK3399/4"
+_srcname=u-boot-${pkgver}
+pkgdesc="U-Boot for Orange Pi 4"
 arch=('aarch64')
 url='http://www.denx.de/wiki/U-Boot/WebHome'
 license=('GPL')
 backup=('boot/boot.txt' 'boot/boot.scr')
 makedepends=('bc' 'git')
 install=${pkgname}.install
-_commit_rkbin=5aa9a92b5652d37b323c870329103e120dfc8d87
-source=("ftp://ftp.denx.de/pub/u-boot/${_srcname}.tar.bz2"
-        "git+https://github.com/rockchip-linux/rkbin.git#commit=$_commit_rkbin"
+atfver=2.3
+source=("ftp://ftp.denx.de/pub/u-boot/u-boot-${pkgver}.tar.bz2"
+	"https://github.com/ARM-software/arm-trusted-firmware/archive/v${atfver}.tar.gz"
+	"0001-add-orangepi4-makefile.patch"
         'boot.txt'
         'mkscr')
-md5sums=('b6b2e0787b6874e6b57da0a065a84f5a'
-         'SKIP'
+md5sums=('51113d2288c55110e33a895c65ab9f60'
+         '06ad72bdf63b922a3f3865d81f5d9ad2'
+         '6fef01ba666f32c3f7cc7338df11e7e8'
          'e2869196adb467048d6e8c86fbf15fee'
          '021623a04afd29ac3f368977140cfbfd')
 
-build() {
-  cd ${_srcname}
+prepare() {
+  cd ${srcdir}/${_srcname}
+  patch -p1 -i ../0001-add-orangepi4-makefile.patch
+}
 
+build() {
   unset CLFAGS CXXFLAGS CPPFLAGS LDFLAGS
 
-  make orangepi-rk3399_defconfig
+  cd ${srcdir}/arm-trusted-firmware-${atfver}
+  make realclean
+  make PLAT=rk3399
+
+  cd ${srcdir}/${_srcname}
+
+  # Fixup DDR4 support for Orange Pi 4
+  cp configs/orangepi{-rk3399,4}_defconfig
+  echo 'CONFIG_RAM_RK3399_LPDDR4=y' >> configs/orangepi4_defconfig
+  sed -i "s|CONFIG_DEFAULT_FDT_FILE=\"rockchip/rk3399-orangepi.dtb\"|CONFIG_DEFAULT_FDT_FILE=\"rk3399-orangepi4.dtb\"|" configs/orangepi4_defconfig
+  sed -i "s|CONFIG_DEFAULT_DEVICE_TREE=\"rk3399-orangepi\"|CONFIG_DEFAULT_DEVICE_TREE=\"rk3399-orangepi4\"|" configs/orangepi4_defconfig
+
+  cp arch/arm/dts/rk3399-orangepi{,4}.dts
+  cp arch/arm/dts/rk3399-{rockpro64,orangepi4}-u-boot.dtsi
+
+  make orangepi4_defconfig
+
   echo 'CONFIG_IDENT_STRING=" Arch Linux ARM"' >> .config
-  make EXTRAVERSION=-${pkgrel}
+  make EXTRAVERSION=-${pkgrel} BL31=${srcdir}/arm-trusted-firmware-${atfver}/build/rk3399/release/bl31/bl31.elf
 }
 
 package() {
@@ -41,16 +61,7 @@ package() {
 
   mkdir -p "${pkgdir}/boot"
 
-  tools/mkimage -n rk3399 -T rksd -d ../rkbin/bin/rk33/rk3399_ddr_933MHz_v1.24.bin "${pkgdir}/boot/idbloader.img"
-  cat ../rkbin/bin/rk33/rk3399_miniloader_v1.24.bin >> "${pkgdir}/boot/idbloader.img"
-
-  ../rkbin/tools/loaderimage --pack --uboot u-boot-dtb.bin "${pkgdir}/boot/uboot.img" 0x200000
-
-  pushd ../rkbin
-  tools/trust_merger ../rkbin/RKTRUST/RK3399TRUST.ini
-  popd
-
-  cp u-boot-dtb.bin ../rkbin/trust.img "${pkgdir}/boot"
+  cp idbloader.img u-boot.itb "${pkgdir}/boot"
 
   tools/mkimage -A arm -O linux -T script -C none -n "U-Boot boot script" -d ../boot.txt "${pkgdir}/boot/boot.scr"
   cp ../{boot.txt,mkscr} "${pkgdir}"/boot
