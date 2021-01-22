@@ -5,7 +5,7 @@ setenv macaddr da 19 c8 7a 6d f4
 
 part uuid ${devtype} ${devnum}:${bootpart} uuid
 setenv bootargs console=ttyS2,1500000 root=PARTUUID=${uuid} rw rootwait earlycon=uart8250,mmio32,0xff1a0000
-setenv fdtfile rockchip/rk3399-orangepi.dtb
+setenv fdtfile rockchip/rk3399-orangepi-4.dtb
 
 if load ${devtype} ${devnum}:${bootpart} ${kernel_addr_r} /boot/Image; then
   if load ${devtype} ${devnum}:${bootpart} ${fdt_addr_r} /boot/dtbs/${fdtfile}; then
