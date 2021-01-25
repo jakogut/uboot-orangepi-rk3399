@@ -5,7 +5,7 @@
 buildarch=8
 
 pkgname=uboot-orangepi4
-pkgver=2021.01
+pkgver=2020.04
 pkgrel=1
 _srcname=u-boot-${pkgver}
 pkgdesc="U-Boot for Orange Pi 4"
@@ -17,17 +17,16 @@ makedepends=('bc' 'git' 'dtc')
 options=(!distcc !strip !ccache)
 install=${pkgname}.install
 atfver=2.3
-opi4_patch_sha=6e40789
 source=("ftp://ftp.denx.de/pub/u-boot/u-boot-${pkgver}.tar.bz2"
 	"https://github.com/ARM-software/arm-trusted-firmware/archive/v${atfver}.tar.gz"
-	"https://raw.githubusercontent.com/armbian/build/${opi4_patch_sha}/patch/u-boot/u-boot-rockchip64-mainline/add-board-orangepi-4.patch"
+	"0001-add-orangepi4-makefile.patch"
         'boot.txt'
         'mkscr')
-md5sums=('a3206df1c1b97df7a4ddcdd17cb97d0c'
+md5sums=('51113d2288c55110e33a895c65ab9f60'
          '06ad72bdf63b922a3f3865d81f5d9ad2'
-         '40cb0841f3f76b3e45c3b0f927cefa46'
-	 '743a5578cd1a2c7effae08a82bd63856'
-	 '021623a04afd29ac3f368977140cfbfd')
+         '6fef01ba666f32c3f7cc7338df11e7e8'
+         'e2869196adb467048d6e8c86fbf15fee'
+         '021623a04afd29ac3f368977140cfbfd')
 PHOST="$CARCH"
 case "$CARCH" in
     aarch64) makedepends+=('gcc-arm-none-eabi' 'gcc')
@@ -47,7 +46,7 @@ esac
          
 prepare() {
   cd ${srcdir}/${_srcname}
-  patch -p1 -i ../add-board-orangepi-4.patch
+  patch -p1 -i ../0001-add-orangepi4-makefile.patch
   
   if [ -e ${srcdir}/gcc-arm-8.2-2019.01-x86_64-aarch64-linux-gnu.tar.xz ]; then
     if [ -d ${srcdir}/aarch64 ]; then
@@ -94,7 +93,7 @@ prepare() {
 }
 
 build() {
-  unset CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+  unset CLFAGS CXXFLAGS CPPFLAGS LDFLAGS 
   
   if [ "$PHOST" = "x86_64" ]; then
     CPPFLAGS=""
@@ -110,7 +109,16 @@ build() {
 
   cd ${srcdir}/${_srcname}
 
-  make orangepi-4-rk3399_defconfig
+  # Fixup DDR4 support for Orange Pi 4
+  cp configs/orangepi{-rk3399,4}_defconfig
+  echo 'CONFIG_RAM_RK3399_LPDDR4=y' >> configs/orangepi4_defconfig
+  sed -i "s|CONFIG_DEFAULT_FDT_FILE=\"rockchip/rk3399-orangepi.dtb\"|CONFIG_DEFAULT_FDT_FILE=\"rk3399-orangepi4.dtb\"|" configs/orangepi4_defconfig
+  sed -i "s|CONFIG_DEFAULT_DEVICE_TREE=\"rk3399-orangepi\"|CONFIG_DEFAULT_DEVICE_TREE=\"rk3399-orangepi4\"|" configs/orangepi4_defconfig
+
+  cp arch/arm/dts/rk3399-orangepi{,4}.dts
+  cp arch/arm/dts/rk3399-{rockpro64,orangepi4}-u-boot.dtsi
+
+  make orangepi4_defconfig
 
   echo 'CONFIG_IDENT_STRING=" Arch Linux ARM"' >> .config
   make EXTRAVERSION=-${pkgrel} BL31=${srcdir}/arm-trusted-firmware-${atfver}/build/rk3399/release/bl31/bl31.elf
