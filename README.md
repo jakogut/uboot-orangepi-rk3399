@@ -52,8 +52,7 @@ Replace **sdX** in the following instructions with the device name for the SD ca
 10. Manually flash u-boot to the SD card:
 	```
 	arch-chroot /mnt dd if=/boot/idbloader.img of=/dev/sdX seek=64 conv=notrunc
-	arch-chroot /mnt dd if=/boot/uboot.img of=/dev/sdX seek=16384 conv=notrunc
-	arch-chroot /mnt dd if=/boot/trust.img of=/dev/sdX seek=24576 conv=notrunc
+	arch-chroot /mnt dd if=/boot/u-boot.itb of=/dev/mmcblk1 seek=16384 conv=notrunc
 	```
 
 11. Insert the micro SD card into the board, connect ethernet and apply power.
